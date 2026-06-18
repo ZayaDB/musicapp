@@ -29,7 +29,17 @@ export default defineConfig({
         navigateFallback: '/index.html',
         runtimeCaching: [
           {
-            urlPattern: ({ url }) => url.pathname.endsWith('/api/audio') || url.pathname.includes('/audio'),
+            urlPattern: ({ url }) => url.hostname.includes('googlevideo.com'),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'muse-media-v1',
+              expiration: { maxEntries: 80, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              rangeRequests: true,
+            },
+          },
+          {
+            urlPattern: ({ url }) =>
+              url.pathname.includes('/api/audio') || url.pathname.endsWith('/audio'),
             handler: 'CacheFirst',
             options: {
               cacheName: 'muse-audio-proxy',

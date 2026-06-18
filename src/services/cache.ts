@@ -5,17 +5,27 @@ interface AudioDB extends DBSchema {
     key: string
     value: { videoId: string; blob: Blob; savedAt: number }
   }
+  streamUrls: {
+    key: string
+    value: { videoId: string; streamUrl: string; savedAt: number }
+  }
 }
 
+const MEDIA_CACHE = 'muse-media-v1'
 const CHUNK_SIZE = 512 * 1024
 
 let dbPromise: Promise<IDBPDatabase<AudioDB>> | null = null
 
 function getDB() {
   if (!dbPromise) {
-    dbPromise = openDB<AudioDB>('muse-audio', 1, {
-      upgrade(db) {
-        db.createObjectStore('audioBlobs', { keyPath: 'videoId' })
+    dbPromise = openDB<AudioDB>('muse-audio', 2, {
+      upgrade(db, oldVersion) {
+        if (oldVersion < 1) {
+          db.createObjectStore('audioBlobs', { keyPath: 'videoId' })
+        }
+        if (oldVersion < 2) {
+          db.createObjectStore('streamUrls', { keyPath: 'videoId' })
+        }
       },
     })
   }
@@ -26,17 +36,47 @@ function proxyUrl(videoId: string): string {
   return `/api/audio?v=${encodeURIComponent(videoId)}`
 }
 
+export async function saveStreamUrl(videoId: string, streamUrl: string): Promise<void> {
+  const db = await getDB()
+  await db.put('streamUrls', { videoId, streamUrl, savedAt: Date.now() })
+}
+
+async function getStreamUrl(videoId: string): Promise<string | null> {
+  const db = await getDB()
+  const entry = await db.get('streamUrls', videoId)
+  return entry?.streamUrl ?? null
+}
+
+async function isInMediaCache(url: string): Promise<boolean> {
+  try {
+    const cache = await caches.open(MEDIA_CACHE)
+    const res = await cache.match(url)
+    return !!res
+  } catch {
+    return false
+  }
+}
+
 export async function isAudioCached(videoId: string): Promise<boolean> {
   const db = await getDB()
-  const entry = await db.get('audioBlobs', videoId)
-  return !!entry?.blob && entry.blob.size > 0
+  const blob = await db.get('audioBlobs', videoId)
+  if (blob?.blob?.size) return true
+
+  const streamUrl = await getStreamUrl(videoId)
+  if (streamUrl && (await isInMediaCache(streamUrl))) return true
+
+  return false
 }
 
 export async function getCachedAudioUrl(videoId: string): Promise<string | null> {
   const db = await getDB()
   const entry = await db.get('audioBlobs', videoId)
-  if (!entry?.blob?.size) return null
-  return URL.createObjectURL(entry.blob)
+  if (entry?.blob?.size) return URL.createObjectURL(entry.blob)
+
+  const streamUrl = await getStreamUrl(videoId)
+  if (streamUrl && (await isInMediaCache(streamUrl))) return streamUrl
+
+  return null
 }
 
 async function saveBlob(videoId: string, blob: Blob): Promise<void> {
@@ -44,7 +84,7 @@ async function saveBlob(videoId: string, blob: Blob): Promise<void> {
   await db.put('audioBlobs', { videoId, blob, savedAt: Date.now() })
 }
 
-export async function cacheAudio(videoId: string): Promise<void> {
+export async function cacheAudioViaProxy(videoId: string): Promise<void> {
   if (await isAudioCached(videoId)) return
 
   const chunks: BlobPart[] = []
@@ -56,18 +96,14 @@ export async function cacheAudio(videoId: string): Promise<void> {
       headers: { Range: `bytes=${start}-${end}` },
     })
 
-    if (!res.ok) {
-      throw new Error('오디오 다운로드 실패')
-    }
+    if (!res.ok) throw new Error('오디오 다운로드 실패')
 
     const blob = await res.blob()
     if (blob.size === 0) break
 
     chunks.push(blob)
 
-    if (res.status !== 206) {
-      break
-    }
+    if (res.status !== 206) break
 
     const range = res.headers.get('Content-Range')
     if (!range) break
@@ -85,11 +121,26 @@ export async function cacheAudio(videoId: string): Promise<void> {
   await saveBlob(videoId, new Blob(chunks, { type: 'audio/mp4' }))
 }
 
-export function getProxyAudioUrl(videoId: string): string {
-  return proxyUrl(videoId)
+export async function waitForMediaCache(streamUrl: string, timeoutMs = 120000): Promise<boolean> {
+  const start = Date.now()
+  while (Date.now() - start < timeoutMs) {
+    if (await isInMediaCache(streamUrl)) return true
+    await new Promise((r) => setTimeout(r, 2000))
+  }
+  return false
 }
 
 export async function removeCachedAudio(videoId: string): Promise<void> {
   const db = await getDB()
+  const mapping = await db.get('streamUrls', videoId)
+  if (mapping?.streamUrl) {
+    try {
+      const cache = await caches.open(MEDIA_CACHE)
+      await cache.delete(mapping.streamUrl)
+    } catch {
+      // ignore
+    }
+  }
+  await db.delete('streamUrls', videoId)
   await db.delete('audioBlobs', videoId)
 }

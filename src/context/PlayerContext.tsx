@@ -12,9 +12,11 @@ import { fetchStreamUrl } from '../services/stream'
 import { notifyLibraryUpdated } from '../services/library'
 import { YoutubeEmbed } from '../services/youtubePlayer'
 import {
-  cacheAudio,
+  cacheAudioViaProxy,
   getCachedAudioUrl,
   isAudioCached,
+  saveStreamUrl,
+  waitForMediaCache,
 } from '../services/cache'
 import { saveTrack, getTrack } from '../services/db'
 
@@ -203,6 +205,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
           return
         }
 
+        await saveStreamUrl(track.videoId, streamUrl)
+
         modeRef.current = 'audio'
         setPlaybackMode('audio')
         setIsCaching(true)
@@ -211,8 +215,16 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         updateMediaSession(track)
         await audio.play()
 
-        cacheAudio(track.videoId)
-          .then(async () => {
+        waitForMediaCache(streamUrl)
+          .then(async (cached) => {
+            if (!cached) {
+              try {
+                await cacheAudioViaProxy(track.videoId)
+              } catch {
+                setIsCaching(false)
+                return
+              }
+            }
             setIsCached(true)
             setIsCaching(false)
             const saved = await getTrack(track.videoId)
