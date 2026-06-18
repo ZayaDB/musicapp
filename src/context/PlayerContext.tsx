@@ -10,7 +10,12 @@ import {
 import type { Track } from '../types'
 import { getAudioStreamUrl } from '../services/stream'
 import { YoutubeEmbed } from '../services/youtubePlayer'
-import { cacheAudio, getCachedAudioUrl, isAudioCached } from '../services/cache'
+import {
+  cacheAudio,
+  getCachedAudioUrl,
+  getProxyAudioUrl,
+  isAudioCached,
+} from '../services/cache'
 import { saveTrack, getTrack } from '../services/db'
 
 type PlaybackMode = 'audio' | 'youtube'
@@ -186,6 +191,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
           return
         }
 
+        if (!navigator.onLine) {
+          throw new Error('오프라인 재생 가능한 곡이 아닙니다. 온라인에서 먼저 들어주세요.')
+        }
+
         setIsCached(false)
         const streamUrl = await getAudioStreamUrl(track.videoId)
 
@@ -197,19 +206,27 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         modeRef.current = 'audio'
         setPlaybackMode('audio')
         setIsCaching(true)
-        cacheAudio(track.videoId, streamUrl)
+
+        const proxySrc = getProxyAudioUrl(track.videoId)
+        audio.src = proxySrc
+        updateMediaSession(track)
+        await audio.play()
+
+        cacheAudio(track.videoId)
           .then(async () => {
             setIsCached(true)
             setIsCaching(false)
+            setError(null)
             const saved = await getTrack(track.videoId)
             if (saved) await saveTrack({ ...saved, cachedAt: Date.now() })
           })
           .catch(() => setIsCaching(false))
-
-        audio.src = streamUrl
-        updateMediaSession(track)
-        await audio.play()
       } catch (e) {
+        if (!navigator.onLine) {
+          setError('오프라인 재생 가능한 곡이 아닙니다. 온라인에서 먼저 들어주세요.')
+          setIsPlaying(false)
+          return
+        }
         try {
           await playViaYoutube(track)
         } catch (fallbackErr) {

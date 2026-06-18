@@ -39,11 +39,6 @@ export async function getAllTracks(): Promise<CachedTrack[]> {
   return db.getAllFromIndex('tracks', 'by-cachedAt')
 }
 
-export async function getCachedTracks(): Promise<CachedTrack[]> {
-  const all = await getAllTracks()
-  return all.sort((a, b) => b.cachedAt - a.cachedAt)
-}
-
 export async function toggleFavorite(videoId: string): Promise<boolean> {
   const db = await getDB()
   const track = await db.get('tracks', videoId)

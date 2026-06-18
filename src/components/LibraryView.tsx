@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { getCachedTracks, toggleFavorite, removeTrack } from '../services/db'
+import { toggleFavorite, removeTrack } from '../services/db'
+import { getCachedTracks } from '../services/library'
 import { removeCachedAudio } from '../services/cache'
 import { usePlayer } from '../context/PlayerContext'
 import { TrackItem } from './TrackItem'
@@ -59,7 +60,8 @@ export function LibraryView() {
             </svg>
           </div>
           <p className="text-sm text-white/40">아직 저장된 곡이 없어요</p>
-          <p className="text-xs text-white/25">검색해서 곡을 재생하면 자동 저장됩니다</p>
+          <p className="text-xs text-white/25">온라인에서 재생하면 자동 저장됩니다</p>
+          <p className="text-xs text-white/25">YouTube 모드로 들은 곡은 저장되지 않습니다</p>
         </div>
       ) : (
         <div className="flex flex-col gap-0.5">

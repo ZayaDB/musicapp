@@ -1,44 +1,101 @@
-const CACHE_NAME = 'muse-audio-v1'
+import { openDB, type DBSchema, type IDBPDatabase } from 'idb'
 
-async function getCache(): Promise<Cache> {
-  return caches.open(CACHE_NAME)
+interface AudioDB extends DBSchema {
+  audioBlobs: {
+    key: string
+    value: { videoId: string; blob: Blob; savedAt: number }
+  }
 }
 
-function cacheKey(videoId: string): string {
-  return `audio-${videoId}`
+const CHUNK_SIZE = 512 * 1024
+
+let dbPromise: Promise<IDBPDatabase<AudioDB>> | null = null
+
+function getDB() {
+  if (!dbPromise) {
+    dbPromise = openDB<AudioDB>('muse-audio', 1, {
+      upgrade(db) {
+        db.createObjectStore('audioBlobs', { keyPath: 'videoId' })
+      },
+    })
+  }
+  return dbPromise
+}
+
+function proxyUrl(videoId: string): string {
+  return `/api/audio?v=${encodeURIComponent(videoId)}`
 }
 
 export async function isAudioCached(videoId: string): Promise<boolean> {
-  const cache = await getCache()
-  const res = await cache.match(cacheKey(videoId))
-  return !!res
+  const db = await getDB()
+  const entry = await db.get('audioBlobs', videoId)
+  return !!entry?.blob && entry.blob.size > 0
 }
 
 export async function getCachedAudioUrl(videoId: string): Promise<string | null> {
-  const cache = await getCache()
-  const res = await cache.match(cacheKey(videoId))
-  if (!res) return null
-  const blob = await res.blob()
-  return URL.createObjectURL(blob)
+  const db = await getDB()
+  const entry = await db.get('audioBlobs', videoId)
+  if (!entry?.blob?.size) return null
+  return URL.createObjectURL(entry.blob)
 }
 
-export async function cacheAudio(videoId: string, streamUrl: string): Promise<void> {
-  const already = await isAudioCached(videoId)
-  if (already) return
+async function saveBlob(videoId: string, blob: Blob): Promise<void> {
+  const db = await getDB()
+  await db.put('audioBlobs', { videoId, blob, savedAt: Date.now() })
+}
 
-  let res: Response
-  try {
-    res = await fetch(streamUrl)
-    if (!res.ok) throw new Error('CORS fetch failed')
-  } catch {
-    res = await fetch(streamUrl, { mode: 'no-cors' })
+export async function cacheAudio(videoId: string): Promise<void> {
+  if (await isAudioCached(videoId)) return
+
+  const chunks: BlobPart[] = []
+  let start = 0
+
+  while (true) {
+    const end = start + CHUNK_SIZE - 1
+    const res = await fetch(proxyUrl(videoId), {
+      headers: { Range: `bytes=${start}-${end}` },
+    })
+
+    if (!res.ok) {
+      if (start === 0) {
+        const full = await fetch(proxyUrl(videoId))
+        if (!full.ok) throw new Error('오디오 다운로드 실패')
+        await saveBlob(videoId, await full.blob())
+        return
+      }
+      throw new Error('오디오 다운로드 실패')
+    }
+
+    const blob = await res.blob()
+    if (blob.size === 0) break
+
+    chunks.push(blob)
+
+    if (res.status !== 206) {
+      break
+    }
+
+    const range = res.headers.get('Content-Range')
+    if (!range) break
+
+    const match = range.match(/bytes (\d+)-(\d+)\/(\d+)/)
+    if (!match) break
+
+    const total = Number(match[3])
+    const chunkEnd = Number(match[2])
+    if (chunkEnd + 1 >= total) break
+    start = chunkEnd + 1
   }
 
-  const cache = await getCache()
-  await cache.put(cacheKey(videoId), res.clone())
+  if (chunks.length === 0) throw new Error('오디오 데이터가 비어 있습니다')
+  await saveBlob(videoId, new Blob(chunks, { type: 'audio/mp4' }))
+}
+
+export function getProxyAudioUrl(videoId: string): string {
+  return proxyUrl(videoId)
 }
 
 export async function removeCachedAudio(videoId: string): Promise<void> {
-  const cache = await getCache()
-  await cache.delete(cacheKey(videoId))
+  const db = await getDB()
+  await db.delete('audioBlobs', videoId)
 }

@@ -9,6 +9,9 @@
 [functions.stream]
   timeout = 26
 
+[functions.audio]
+  timeout = 26
+
 # API → Netlify Functions (SPA redirect보다 먼저)
 [[redirects]]
   from = "/api/search"
@@ -18,6 +21,11 @@
 [[redirects]]
   from = "/api/stream"
   to = "/.netlify/functions/stream"
+  status = 200
+
+[[redirects]]
+  from = "/api/audio"
+  to = "/.netlify/functions/audio"
   status = 200
 
 # SPA + PWA

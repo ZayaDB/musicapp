@@ -1,18 +1,9 @@
+const { getAudioUrl } = require('./lib/youtube-audio')
+
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'Content-Type',
   'Access-Control-Allow-Methods': 'GET, OPTIONS',
-}
-
-async function getAudioUrl(videoId) {
-  const { Innertube, ClientType } = await import('youtubei.js')
-  const yt = await Innertube.create({
-    client_type: ClientType.IOS,
-    retrieve_player: false,
-  })
-  const info = await yt.getBasicInfo(videoId)
-  const format = info.chooseFormat({ type: 'audio', quality: 'best' })
-  return format?.url ?? null
 }
 
 exports.handler = async (event) => {

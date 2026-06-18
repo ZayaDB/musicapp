@@ -27,6 +27,17 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,svg,woff2}'],
         navigateFallback: '/index.html',
+        runtimeCaching: [
+          {
+            urlPattern: ({ url }) => url.pathname.endsWith('/api/audio') || url.pathname.includes('/audio'),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'muse-audio-proxy',
+              expiration: { maxEntries: 80, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              rangeRequests: true,
+            },
+          },
+        ],
       },
     }),
   ],
