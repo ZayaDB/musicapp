@@ -14,14 +14,3 @@ export async function searchTracks(query: string): Promise<Track[]> {
 
   return (data.items ?? []) as Track[]
 }
-
-export async function getAudioStreamUrl(videoId: string): Promise<string> {
-  const res = await apiFetch(`/api/stream?v=${encodeURIComponent(videoId)}`)
-  const data = await res.json()
-
-  if (!res.ok) {
-    throw new Error(data.error ?? '스트림을 가져올 수 없습니다')
-  }
-
-  return data.url
-}

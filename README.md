@@ -4,8 +4,8 @@
 
 ## 기능
 
-- **검색** — YouTube Data API로 곡 검색
-- **재생** — Netlify Function으로 오디오 스트림
+- **검색** — YouTube Data API (Netlify 서버)
+- **재생** — youtubei.js (브라우저에서 직접, 봇 차단 회피)
 - **오프라인** — 재생한 곡 자동 캐시, 라이브러리에서 재생
 - **PWA** — iPhone 홈 화면에 추가해서 앱처럼 사용
 
