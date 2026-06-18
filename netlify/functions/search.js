@@ -39,10 +39,14 @@ exports.handler = async (event) => {
     const searchData = await searchRes.json()
 
     if (!searchRes.ok) {
+      const msg = searchData.error?.message ?? 'YouTube 검색 실패'
+      const hint = msg.includes('referer')
+        ? ' — Google Cloud에서 API 키 Application restrictions를 None으로 변경하세요'
+        : ''
       return {
         statusCode: searchRes.status,
         headers: CORS,
-        body: JSON.stringify({ error: searchData.error?.message ?? 'YouTube 검색 실패' }),
+        body: JSON.stringify({ error: msg + hint }),
       }
     }
 

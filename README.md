@@ -26,7 +26,19 @@
    - Value: (복사한 API 키)
 4. **Save** 후 **Deploys → Trigger deploy → Deploy site** (재배포)
 
-> API 키는 서버(Netlify Function)에서만 사용되므로 브라우저에 노출되지 않습니다.
+### API 키 제한 설정 (중요)
+
+API 키는 **Netlify 서버에서만** 사용됩니다 (브라우저로 전달되지 않음).
+
+Google Cloud → Credentials → API 키 → Edit:
+
+| 항목 | 설정 |
+|------|------|
+| **Application restrictions** | **None** ← HTTP referrer 쓰면 403 발생 |
+| **API restrictions** | Restrict key → **YouTube Data API v3**만 허용 |
+
+> HTTP referrer 제한은 브라우저에서 직접 API를 호출할 때만 해당합니다.  
+> Netlify Function은 referer가 `<empty>`라서 차단됩니다.
 
 ## 로컬 개발
 
