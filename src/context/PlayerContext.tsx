@@ -8,7 +8,7 @@ import {
   type ReactNode,
 } from 'react'
 import type { Track } from '../types'
-import { getAudioStreamUrl } from '../services/piped'
+import { getAudioStreamUrl } from '../services/youtube'
 import { cacheAudio, getCachedAudioUrl, isAudioCached } from '../services/cache'
 import { saveTrack, getTrack } from '../services/db'
 

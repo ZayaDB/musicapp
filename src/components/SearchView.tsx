@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { searchTracks } from '../services/piped'
+import { searchTracks } from '../services/youtube'
 import { usePlayer } from '../context/PlayerContext'
 import { useOnlineStatus } from '../hooks/useOnlineStatus'
 import { TrackItem } from './TrackItem'
@@ -10,6 +10,7 @@ export function SearchView() {
   const [results, setResults] = useState<Track[]>([])
   const [loading, setLoading] = useState(false)
   const [searched, setSearched] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const { playTrack } = usePlayer()
   const online = useOnlineStatus()
 
@@ -19,11 +20,13 @@ export function SearchView() {
 
     setLoading(true)
     setSearched(true)
+    setError(null)
     try {
       const tracks = await searchTracks(query.trim())
       setResults(tracks)
-    } catch {
+    } catch (err) {
       setResults([])
+      setError(err instanceof Error ? err.message : '검색에 실패했습니다')
     } finally {
       setLoading(false)
     }
@@ -64,13 +67,19 @@ export function SearchView() {
         </div>
       </form>
 
+      {error && (
+        <div className="rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-200/90">
+          {error}
+        </div>
+      )}
+
       {loading && (
         <div className="flex justify-center py-12">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-violet-500 border-t-transparent" />
         </div>
       )}
 
-      {!loading && searched && results.length === 0 && (
+      {!loading && searched && !error && results.length === 0 && (
         <p className="py-12 text-center text-sm text-white/40">검색 결과가 없습니다</p>
       )}
 
