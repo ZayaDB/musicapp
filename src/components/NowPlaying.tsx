@@ -6,13 +6,10 @@ export function NowPlaying() {
     currentTrack,
     isPlaying,
     isLoading,
-    isCached,
-    isCaching,
     currentTime,
     duration,
     error,
     showNowPlaying,
-    playbackMode,
     setShowNowPlaying,
     togglePlay,
     playNext,
@@ -39,15 +36,7 @@ export function NowPlaying() {
         </button>
         <div className="text-center">
           <p className="text-xs font-medium uppercase tracking-widest text-white/40">재생 중</p>
-          {isCaching && (
-            <p className="text-[10px] text-violet-400">오프라인 저장 중...</p>
-          )}
-          {isCached && !isCaching && (
-            <p className="text-[10px] text-emerald-400/80">오프라인 재생 가능</p>
-          )}
-          {playbackMode === 'youtube' && !isCached && (
-            <p className="text-[10px] text-sky-400/80">YouTube 스트리밍</p>
-          )}
+          <p className="text-[10px] text-emerald-400/80">오프라인 재생</p>
         </div>
         <div className="w-10" />
       </div>
@@ -69,9 +58,7 @@ export function NowPlaying() {
           <p className="mt-1 text-base text-white/50">{currentTrack.artist}</p>
         </div>
 
-        {error && (
-          <p className="text-sm text-red-400">{error}</p>
-        )}
+        {error && <p className="text-sm text-red-400">{error}</p>}
 
         <div className="w-full max-w-[320px]">
           <input

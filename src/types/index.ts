@@ -1,14 +1,13 @@
 export interface Track {
-  videoId: string
+  id: string
   title: string
   artist: string
   thumbnail: string
   duration: number
-}
-
-export interface CachedTrack extends Track {
-  cachedAt: number
+  fileName: string
+  addedAt: number
   isFavorite: boolean
+  youtubeUrl?: string
 }
 
-export type Tab = 'search' | 'library'
+export type Tab = 'library' | 'download'

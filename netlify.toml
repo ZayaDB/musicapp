@@ -6,29 +6,27 @@
 [functions]
   node_bundler = "esbuild"
 
-[functions.stream]
+[functions.download]
   timeout = 26
 
-[functions.audio]
+[functions.proxy]
   timeout = 26
 
-# API → Netlify Functions (SPA redirect보다 먼저)
 [[redirects]]
-  from = "/api/search"
-  to = "/.netlify/functions/search"
+  from = "/api/metadata"
+  to = "/.netlify/functions/metadata"
   status = 200
 
 [[redirects]]
-  from = "/api/stream"
-  to = "/.netlify/functions/stream"
+  from = "/api/download"
+  to = "/.netlify/functions/download"
   status = 200
 
 [[redirects]]
-  from = "/api/audio"
-  to = "/.netlify/functions/audio"
+  from = "/api/proxy"
+  to = "/.netlify/functions/proxy"
   status = 200
 
-# SPA + PWA
 [[redirects]]
   from = "/*"
   to = "/index.html"

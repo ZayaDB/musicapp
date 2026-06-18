@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { PlayerProvider } from './context/PlayerContext'
-import { SearchView } from './components/SearchView'
 import { LibraryView } from './components/LibraryView'
+import { UploadView } from './components/UploadView'
 import { BottomNav } from './components/BottomNav'
 import { MiniPlayer } from './components/MiniPlayer'
 import { NowPlaying } from './components/NowPlaying'
@@ -9,7 +9,8 @@ import { useOnlineStatus } from './hooks/useOnlineStatus'
 import type { Tab } from './types'
 
 function AppContent() {
-  const [tab, setTab] = useState<Tab>('search')
+  const [tab, setTab] = useState<Tab>('download')
+  const [libraryKey, setLibraryKey] = useState(0)
   const online = useOnlineStatus()
 
   return (
@@ -32,7 +33,16 @@ function AppContent() {
       </header>
 
       <main className="flex-1 overflow-y-auto px-4 pb-4">
-        {tab === 'search' ? <SearchView /> : <LibraryView />}
+        {tab === 'library' ? (
+          <LibraryView key={libraryKey} />
+        ) : tab === 'download' ? (
+          <UploadView
+            onUploaded={() => {
+              setLibraryKey((k) => k + 1)
+              setTab('library')
+            }}
+          />
+        ) : null}
       </main>
 
       <div className="shrink-0 pb-safe-bottom">
