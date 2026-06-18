@@ -12,6 +12,7 @@ export function NowPlaying() {
     duration,
     error,
     showNowPlaying,
+    playbackMode,
     setShowNowPlaying,
     togglePlay,
     playNext,
@@ -43,6 +44,9 @@ export function NowPlaying() {
           )}
           {isCached && !isCaching && (
             <p className="text-[10px] text-emerald-400/80">오프라인 재생 가능</p>
+          )}
+          {playbackMode === 'youtube' && !isCached && (
+            <p className="text-[10px] text-sky-400/80">YouTube 스트리밍</p>
           )}
         </div>
         <div className="w-10" />
