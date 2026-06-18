@@ -1,28 +1,16 @@
-import type { Innertube } from 'youtubei.js'
+export async function getAudioStreamUrl(videoId: string): Promise<string | null> {
+  const res = await fetch(`/api/stream?v=${encodeURIComponent(videoId)}`, {
+    signal: AbortSignal.timeout(20000),
+  })
+  const data = await res.json()
 
-let innertubePromise: Promise<Innertube> | null = null
-
-async function getInnertube(): Promise<Innertube> {
-  if (!innertubePromise) {
-    innertubePromise = (async () => {
-      const { Innertube, ClientType } = await import('youtubei.js')
-      return Innertube.create({
-        client_type: ClientType.IOS,
-        retrieve_player: false,
-      })
-    })()
-  }
-  return innertubePromise
-}
-
-export async function getAudioStreamUrl(videoId: string): Promise<string> {
-  const yt = await getInnertube()
-  const info = await yt.getBasicInfo(videoId)
-  const format = info.chooseFormat({ type: 'audio', quality: 'best' })
-
-  if (!format?.url) {
-    throw new Error('재생 URL을 가져올 수 없습니다. 다른 곡을 시도해 보세요.')
+  if (res.ok && data.url) {
+    return data.url as string
   }
 
-  return format.url
+  if (data.fallback === 'youtube') {
+    return null
+  }
+
+  throw new Error(data.error ?? '스트림을 가져올 수 없습니다')
 }
