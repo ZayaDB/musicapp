@@ -20,6 +20,8 @@ export function LibraryView() {
 
   useEffect(() => {
     load()
+    window.addEventListener('muse:library-updated', load)
+    return () => window.removeEventListener('muse:library-updated', load)
   }, [load, currentTrack])
 
   async function handleFavorite(videoId: string) {

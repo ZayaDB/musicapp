@@ -2,6 +2,10 @@ import { getAllTracks } from './db'
 import { isAudioCached } from './cache'
 import type { CachedTrack } from '../types'
 
+export function notifyLibraryUpdated() {
+  window.dispatchEvent(new CustomEvent('muse:library-updated'))
+}
+
 export async function getCachedTracks(): Promise<CachedTrack[]> {
   const all = await getAllTracks()
   const results: CachedTrack[] = []
