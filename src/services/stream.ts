@@ -1,36 +1,28 @@
-const CLIENTS = ['IOS', 'ANDROID', 'MWEB'] as const
+import type { Innertube } from 'youtubei.js'
 
-let innertubeModule: typeof import('youtubei.js') | null = null
+let innertubePromise: Promise<Innertube> | null = null
 
-async function loadYoutubei() {
-  if (!innertubeModule) {
-    innertubeModule = await import('youtubei.js')
+async function getInnertube(): Promise<Innertube> {
+  if (!innertubePromise) {
+    innertubePromise = (async () => {
+      const { Innertube, ClientType } = await import('youtubei.js')
+      return Innertube.create({
+        client_type: ClientType.IOS,
+        retrieve_player: false,
+      })
+    })()
   }
-  return innertubeModule
+  return innertubePromise
 }
 
 export async function getAudioStreamUrl(videoId: string): Promise<string> {
-  const { Innertube, ClientType } = await loadYoutubei()
-  let lastError: Error | null = null
+  const yt = await getInnertube()
+  const info = await yt.getBasicInfo(videoId)
+  const format = info.chooseFormat({ type: 'audio', quality: 'best' })
 
-  for (const name of CLIENTS) {
-    try {
-      const yt = await Innertube.create({ client_type: ClientType[name] })
-      const info = await yt.getBasicInfo(videoId)
-      const format = info.chooseFormat({ type: 'audio', quality: 'best' })
-
-      if (!format) continue
-
-      let url = format.url
-      if (!url) {
-        url = await format.decipher(yt.session.player)
-      }
-
-      if (url) return url
-    } catch (e) {
-      lastError = e instanceof Error ? e : new Error(String(e))
-    }
+  if (!format?.url) {
+    throw new Error('재생 URL을 가져올 수 없습니다. 다른 곡을 시도해 보세요.')
   }
 
-  throw lastError ?? new Error('오디오 스트림을 찾을 수 없습니다')
+  return format.url
 }

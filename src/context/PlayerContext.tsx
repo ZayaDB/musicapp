@@ -57,6 +57,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     audioRef.current = new Audio()
     const audio = audioRef.current
+    audio.preload = 'auto'
 
     const onTimeUpdate = () => setCurrentTime(audio.currentTime)
     const onDurationChange = () => setDuration(audio.duration || 0)
@@ -145,7 +146,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       updateMediaSession(track)
       await audio.play()
     } catch (e) {
-      const msg = e instanceof Error ? e.message : '재생 실패'
+      let msg = e instanceof Error ? e.message : '재생 실패'
+      if (msg.includes('NotAllowedError') || msg.includes('not allowed')) {
+        msg = '재생 권한이 필요합니다. 곡을 다시 탭해 주세요.'
+      }
       setError(msg)
       setIsPlaying(false)
     } finally {
