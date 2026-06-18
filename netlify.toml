@@ -9,7 +9,7 @@
 [functions.download]
   timeout = 26
 
-[functions.proxy]
+[functions.fetch-audio]
   timeout = 26
 
 [[redirects]]
@@ -23,8 +23,8 @@
   status = 200
 
 [[redirects]]
-  from = "/api/proxy"
-  to = "/.netlify/functions/proxy"
+  from = "/api/fetch-audio"
+  to = "/.netlify/functions/fetch-audio"
   status = 200
 
 [[redirects]]

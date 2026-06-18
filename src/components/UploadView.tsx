@@ -1,6 +1,7 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { downloadYoutubeToLibrary, findTrackByVideoId, extractVideoId } from '../services/download'
 import { importAudioFile } from '../services/upload'
+import { YoutubePreview } from './YoutubePreview'
 
 export function UploadView({ onUploaded }: { onUploaded?: () => void }) {
   const inputRef = useRef<HTMLInputElement>(null)
@@ -12,8 +13,9 @@ export function UploadView({ onUploaded }: { onUploaded?: () => void }) {
   const [progress, setProgress] = useState(0)
   const [message, setMessage] = useState('')
 
+  const videoId = useMemo(() => extractVideoId(youtubeUrl), [youtubeUrl])
+
   const handleDownload = async () => {
-    const videoId = extractVideoId(youtubeUrl)
     if (!videoId) {
       setMessage('YouTube URL을 붙여넣어 주세요')
       setStatus('error')
@@ -38,14 +40,14 @@ export function UploadView({ onUploaded }: { onUploaded?: () => void }) {
         setProgress(p)
       })
       setStatus('done')
-      setMessage('다운로드 완료! 오프라인에서도 재생됩니다.')
+      setMessage('다운로드 완료! 라이브러리에서 오프라인 재생할 수 있습니다.')
       setYoutubeUrl('')
       onUploaded?.()
       setTimeout(() => setStatus('idle'), 2500)
     } catch (e) {
       setStatus('error')
       setMessage(e instanceof Error ? e.message : '다운로드 실패')
-      setTimeout(() => setStatus('idle'), 4000)
+      setTimeout(() => setStatus('idle'), 5000)
     }
   }
 
@@ -89,7 +91,7 @@ export function UploadView({ onUploaded }: { onUploaded?: () => void }) {
       <section>
         <h2 className="text-xl font-bold">YouTube 다운로드</h2>
         <p className="mt-1 text-sm text-white/50">
-          URL 붙여넣고 다운로드하면 이 기기에 저장됩니다. 비행기 모드에서도 재생됩니다.
+          URL 붙여넣으면 앱 안에서 미리 듣고, 다운로드하면 이 기기에 저장됩니다.
         </p>
       </section>
 
@@ -102,9 +104,11 @@ export function UploadView({ onUploaded }: { onUploaded?: () => void }) {
           className="w-full rounded-2xl bg-white/10 px-4 py-4 text-sm outline-none placeholder:text-white/30 disabled:opacity-50"
         />
 
+        {videoId && !working && <YoutubePreview videoId={videoId} />}
+
         <button
           type="button"
-          disabled={working || !youtubeUrl.trim()}
+          disabled={working || !videoId}
           onClick={handleDownload}
           className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-violet-500 to-fuchsia-500 py-4 font-semibold disabled:opacity-40"
         >
@@ -118,7 +122,7 @@ export function UploadView({ onUploaded }: { onUploaded?: () => void }) {
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V4" />
               </svg>
-              다운로드
+              이 곡 다운로드 (오프라인 저장)
             </>
           )}
         </button>
@@ -139,6 +143,12 @@ export function UploadView({ onUploaded }: { onUploaded?: () => void }) {
       {message && (
         <p className={`text-sm ${status === 'error' ? 'text-red-400' : 'text-emerald-400'}`}>
           {message}
+        </p>
+      )}
+
+      {status === 'error' && (
+        <p className="text-xs text-white/35">
+          다운로드는 서버를 거칩니다. YouTube가 막으면 아래에서 MP3 파일을 직접 올려 주세요.
         </p>
       )}
 

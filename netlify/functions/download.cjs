@@ -1,44 +1,10 @@
 const CORS = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'Content-Type, Range',
+  'Access-Control-Allow-Headers': 'Content-Type',
   'Access-Control-Allow-Methods': 'GET, OPTIONS',
 }
 
-const CLIENTS = ['IOS', 'ANDROID', 'MWEB']
-
-async function resolveWithYoutubei(videoId) {
-  const { Innertube, ClientType } = await import('youtubei.js')
-  let lastError = null
-
-  for (const name of CLIENTS) {
-    try {
-      const clientType = ClientType[name]
-      if (!clientType) continue
-
-      const yt = await Innertube.create({ client_type: clientType })
-      const info = await yt.getBasicInfo(videoId)
-      const format = info.chooseFormat({ type: 'audio', quality: 'best' })
-      if (!format) continue
-
-      let url = format.url
-      if (!url) {
-        url = await format.decipher(yt.session.player)
-      }
-      if (url) {
-        return {
-          url,
-          mimeType: format.mime_type || 'audio/mp4',
-          title: info.basic_info?.title,
-          artist: info.basic_info?.author,
-        }
-      }
-    } catch (e) {
-      lastError = e
-    }
-  }
-
-  throw lastError || new Error('스트림 URL을 찾을 수 없습니다')
-}
+const { resolveWithYoutubei } = require('./lib/resolve-audio.cjs')
 
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
@@ -59,7 +25,12 @@ exports.handler = async (event) => {
     return {
       statusCode: 200,
       headers: CORS,
-      body: JSON.stringify(result),
+      body: JSON.stringify({
+        videoId,
+        mimeType: result.mimeType,
+        title: result.title,
+        artist: result.artist,
+      }),
     }
   } catch (e) {
     return {
