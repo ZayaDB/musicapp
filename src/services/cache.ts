@@ -57,12 +57,6 @@ export async function cacheAudio(videoId: string): Promise<void> {
     })
 
     if (!res.ok) {
-      if (start === 0) {
-        const full = await fetch(proxyUrl(videoId))
-        if (!full.ok) throw new Error('오디오 다운로드 실패')
-        await saveBlob(videoId, await full.blob())
-        return
-      }
       throw new Error('오디오 다운로드 실패')
     }
 

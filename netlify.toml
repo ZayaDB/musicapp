@@ -6,6 +6,9 @@
 [functions]
   node_bundler = "esbuild"
 
+[functions.stream]
+  timeout = 26
+
 [functions.audio]
   timeout = 26
 
@@ -13,6 +16,11 @@
 [[redirects]]
   from = "/api/search"
   to = "/.netlify/functions/search"
+  status = 200
+
+[[redirects]]
+  from = "/api/stream"
+  to = "/.netlify/functions/stream"
   status = 200
 
 [[redirects]]

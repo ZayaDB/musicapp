@@ -8,12 +8,12 @@ import {
   type ReactNode,
 } from 'react'
 import type { Track } from '../types'
+import { fetchStreamUrl } from '../services/stream'
 import { notifyLibraryUpdated } from '../services/library'
 import { YoutubeEmbed } from '../services/youtubePlayer'
 import {
   cacheAudio,
   getCachedAudioUrl,
-  getProxyAudioUrl,
   isAudioCached,
 } from '../services/cache'
 import { saveTrack, getTrack } from '../services/db'
@@ -196,12 +196,18 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         }
 
         setIsCached(false)
+        const streamUrl = await fetchStreamUrl(track.videoId)
+
+        if (!streamUrl) {
+          await playViaYoutube(track)
+          return
+        }
+
         modeRef.current = 'audio'
         setPlaybackMode('audio')
         setIsCaching(true)
 
-        const proxySrc = getProxyAudioUrl(track.videoId)
-        audio.src = proxySrc
+        audio.src = streamUrl
         updateMediaSession(track)
         await audio.play()
 
