@@ -1,4 +1,4 @@
-const { getAudioUrl } = require('./lib/youtube-audio')
+const { getAudioUrl } = require('./lib/youtube-audio.cjs')
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
