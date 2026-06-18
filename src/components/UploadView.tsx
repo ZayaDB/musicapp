@@ -2,6 +2,7 @@ import { useCallback, useMemo, useRef, useState } from 'react'
 import { downloadYoutubeToLibrary, findTrackByVideoId, extractVideoId } from '../services/download'
 import { importAudioFile } from '../services/upload'
 import { YoutubePreview } from './YoutubePreview'
+import { searchYoutube, type SearchTrack } from '../services/youtubeSearch'
 
 export function UploadView({ onUploaded }: { onUploaded?: () => void }) {
   const inputRef = useRef<HTMLInputElement>(null)
@@ -12,6 +13,9 @@ export function UploadView({ onUploaded }: { onUploaded?: () => void }) {
   const [stage, setStage] = useState('')
   const [progress, setProgress] = useState(0)
   const [message, setMessage] = useState('')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searching, setSearching] = useState(false)
+  const [searchResults, setSearchResults] = useState<SearchTrack[]>([])
 
   const videoId = useMemo(() => extractVideoId(youtubeUrl), [youtubeUrl])
 
@@ -49,6 +53,32 @@ export function UploadView({ onUploaded }: { onUploaded?: () => void }) {
       setMessage(e instanceof Error ? e.message : '다운로드 실패')
       setTimeout(() => setStatus('idle'), 5000)
     }
+  }
+
+  const handleSearch = async () => {
+    const q = searchQuery.trim()
+    if (!q) {
+      setMessage('검색어를 입력해 주세요')
+      return
+    }
+    setSearching(true)
+    setMessage('')
+    try {
+      const items = await searchYoutube(q)
+      setSearchResults(items)
+      if (items.length === 0) {
+        setMessage('검색 결과가 없습니다')
+      }
+    } catch (e) {
+      setMessage(e instanceof Error ? e.message : '검색 실패')
+    } finally {
+      setSearching(false)
+    }
+  }
+
+  const pickResult = (track: SearchTrack) => {
+    setYoutubeUrl(`https://www.youtube.com/watch?v=${track.videoId}`)
+    setMessage(`선택됨: ${track.title}`)
   }
 
   const onPick = useCallback((picked: FileList | null) => {
@@ -94,6 +124,46 @@ export function UploadView({ onUploaded }: { onUploaded?: () => void }) {
           URL 붙여넣으면 앱 안에서 미리 듣고, 다운로드하면 이 기기에 저장됩니다.
         </p>
       </section>
+
+      <div className="space-y-3 rounded-2xl bg-white/5 p-4">
+        <p className="text-sm font-medium text-white/80">노래 제목으로 검색</p>
+        <div className="flex gap-2">
+          <input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="예: 아이유 밤편지"
+            className="flex-1 rounded-xl bg-white/10 px-4 py-3 text-sm outline-none placeholder:text-white/30"
+          />
+          <button
+            type="button"
+            onClick={handleSearch}
+            disabled={searching || !searchQuery.trim()}
+            className="shrink-0 rounded-xl bg-white/10 px-4 py-3 text-sm font-medium disabled:opacity-40"
+          >
+            {searching ? '검색 중…' : '검색'}
+          </button>
+        </div>
+        {searchResults.length > 0 && (
+          <ul className="max-h-72 space-y-2 overflow-y-auto pr-1">
+            {searchResults.map((item) => (
+              <li key={item.videoId}>
+                <button
+                  type="button"
+                  onClick={() => pickResult(item)}
+                  className="flex w-full items-center gap-3 rounded-xl bg-white/5 p-2 text-left active:bg-white/10"
+                >
+                  <img src={item.thumbnail} alt="" className="h-12 w-12 rounded-lg object-cover" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-white">{item.title}</p>
+                    <p className="truncate text-xs text-white/50">{item.artist}</p>
+                  </div>
+                  <span className="text-xs text-violet-300">선택</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
 
       <div className="space-y-3">
         <input
